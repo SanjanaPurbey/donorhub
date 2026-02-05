@@ -288,7 +288,7 @@ export async function POST(request: NextRequest) {
         if (validDonors.length > 0) {
           sendProgress({ type: "phase", phase: "inserting", validCount: validDonors.length });
           
-          const BATCH_SIZE = 50;
+          const BATCH_SIZE = 10;
           
           for (let i = 0; i < validDonors.length; i += BATCH_SIZE) {
             const batch = validDonors.slice(i, i + BATCH_SIZE);
