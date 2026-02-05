@@ -1,0 +1,14 @@
+# DonorHub ML Service - Dependencies
+# Flask WSGI version for PythonAnywhere deployment
+
+# Web Framework (WSGI-compatible)
+flask>=3.0.0
+
+# ML Dependencies
+scikit-learn>=1.7.0
+joblib>=1.3.2
+numpy>=1.26.4
+
+# Optional: Local Development Testing
+# pytest>=7.4.4
+# requests>=2.31.0

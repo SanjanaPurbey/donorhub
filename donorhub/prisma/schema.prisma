@@ -1,0 +1,184 @@
+// Prisma Schema for DonorHub: Centralized Blood Donor Coordination System
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== ENUMS ====================
+
+enum UserRole {
+  SYSTEM_ADMIN
+  COORDINATOR
+}
+
+enum BloodGroup {
+  A_POSITIVE
+  A_NEGATIVE
+  B_POSITIVE
+  B_NEGATIVE
+  AB_POSITIVE
+  AB_NEGATIVE
+  O_POSITIVE
+  O_NEGATIVE
+}
+
+enum UrgencyLevel {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum RequestStatus {
+  PENDING
+  MATCHED
+  FULFILLED
+  CANCELLED
+}
+
+enum MatchStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+  COMPLETED
+}
+
+enum LedgerEventType {
+  DONOR_CREATED
+  DONOR_UPDATED
+  DONOR_MATCHES_INVALIDATED
+  BLOOD_REQUEST_CREATED
+  BLOOD_REQUEST_FULFILLED
+  MATCHES_INVALIDATED
+  MATCH_CONFIRMED
+}
+
+// ==================== MODELS ====================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  createdDonors        Donor[]        @relation("CreatedByUser")
+  createdBloodRequests BloodRequest[] @relation("CreatedByUser")
+  confirmedMatches     DonorMatch[]   @relation("ConfirmedByUser")
+
+  @@map("users")
+}
+
+model Donor {
+  id            String     @id @default(cuid())
+  firstName     String
+  lastName      String
+  email         String     @unique
+  phone         String     @unique
+  bloodGroup    BloodGroup
+  dateOfBirth   DateTime
+  gender        String
+  address       String
+  city          String
+  state         String
+  pincode       String
+  isAvailable   Boolean    @default(true)
+  lastDonation  DateTime?
+  donationCount Int        @default(0)
+  medicalNotes  String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  deletedAt     DateTime?  // Soft delete
+
+  // Relations
+  createdById String
+  createdBy   User         @relation("CreatedByUser", fields: [createdById], references: [id])
+  matches     DonorMatch[]
+
+  @@index([bloodGroup])
+  @@index([city])
+  @@index([isAvailable])
+  @@index([deletedAt])
+  @@map("donors")
+}
+
+model BloodRequest {
+  id              String        @id @default(cuid())
+  patientName     String
+  bloodGroup      BloodGroup
+  unitsRequired   Int
+  urgency         UrgencyLevel
+  hospital        String
+  hospitalAddress String
+  city            String
+  state           String
+  contactName     String
+  contactPhone    String
+  deadline        DateTime
+  status          RequestStatus @default(PENDING)
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?     // Soft delete
+  fulfilledAt     DateTime?
+
+  // Relations
+  createdById String
+  createdBy   User         @relation("CreatedByUser", fields: [createdById], references: [id])
+  matches     DonorMatch[]
+
+  @@index([bloodGroup])
+  @@index([status])
+  @@index([urgency])
+  @@index([city])
+  @@index([deletedAt])
+  @@map("blood_requests")
+}
+
+model DonorMatch {
+  id             String      @id @default(cuid())
+  donorId        String
+  bloodRequestId String
+  status         MatchStatus @default(PENDING)
+  matchScore     Float?      // ML ranking score (optional)
+  matchReason    String?     // Rule-based matching reason
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  confirmedAt    DateTime?
+  completedAt    DateTime?
+
+  // Relations
+  donor        Donor        @relation(fields: [donorId], references: [id])
+  bloodRequest BloodRequest @relation(fields: [bloodRequestId], references: [id])
+  confirmedById String?
+  confirmedBy   User?        @relation("ConfirmedByUser", fields: [confirmedById], references: [id])
+
+  @@unique([donorId, bloodRequestId])
+  @@index([bloodRequestId])
+  @@index([status])
+  @@map("donor_matches")
+}
+
+model HashLedger {
+  id           String          @id @default(cuid())
+  sequence     Int             @unique @default(autoincrement())
+  previousHash String
+  currentHash  String
+  eventType    LedgerEventType
+  entityId     String
+  entityType   String
+  payload      Json
+  timestamp    DateTime        @default(now())
+
+  @@index([entityId])
+  @@index([eventType])
+  @@index([timestamp])
+  @@map("hash_ledger")
+}

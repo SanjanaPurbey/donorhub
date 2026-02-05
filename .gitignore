@@ -1,0 +1,20 @@
+# macOS
+.DS_Store
+
+# Node / Next.js
+donorhub/node_modules/
+donorhub/.next/
+donorhub/.turbo/
+
+# Env files
+donorhub/.env
+donorhub/.env.local
+donorhub/.env.development.local
+donorhub/.env.production.local
+donorhub/.env.test.local
+
+# Python
+donorhub-ml-services/venv/
+donorhub-ml-services/.venv/
+__pycache__/
+*.pyc
